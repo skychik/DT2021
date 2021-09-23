@@ -1,24 +1,58 @@
+\import Data.Bool (or)
 \import Utils
+\import hw01 (fac)
+\import lect01 (<)
 
 -- 1. Определите полиморфный tail для списков.
+\func tail {A : \Type} (l : List A): List A \elim l
+  | nil => nil
+  | :: a l => l
+
+\func tailTest1 : tail {Nat} nil = nil => idp
+--\func tailTest2 : tail (list) = nil => idp
 
 -- 2. Реализуйте любой (but choose wisely) алгоритм сортировки. Функцию сравнения можно принимать в качестве аргумента.
+\func sort {A : \Type} {comp : \Pi (_ _ : A) -> Bool} (l : List A) : List A \elim l
+  | nil => nil
+  | :: a tl => \let sorted => sort {A} {comp} tl \in \case sorted \with {
+    | nil => :: a nil
+    | :: b ttl => if (comp a b) (:: a (sort {A} {comp} (:: b ttl))) (:: b (sort {A} {comp} (:: a ttl)))
+  }
+\func testSort : sort {Nat} {<} (5 :: 4 :: 0 :: 3) = (0 :: 3 :: 4 :: 5) => idp
 
 -- 3. Докажите ассоциативность && и ||.
+\func &&-assoc (x y z : Bool) : (x && y) && z = x && (y && z)
+  | true, true, true => idp
+  | true, true, false => idp
+  | true, false, true => idp
+  | true, false, false => idp
+  | false, true, true => idp
+  | false, true, false => idp
+  | false, false, true => idp
+  | false, false, false => idp
 
-\func &&-assoc (x y z : Bool) : (x && y) && z = x && (y && z) => {?}
-
-\func ||-assoc (x y z : Bool) : (x || y) || z = x || (y || z) => {?}
+\func ||-assoc (x y z : Bool) : (x || y) || z = x || (y || z)
+  | true, true, true => idp
+  | true, true, false => idp
+  | true, false, true => idp
+  | true, false, false => idp
+  | false, true, true => idp
+  | false, true, false => idp
+  | false, false, true => idp
+  | false, false, false => idp
 
 -- 4. Докажите, что fac 3 равно 6.
+\func fac3Test : fac 3 = 6 => idp
 
 -- 5. Докажите следующие пропозициональные тавтологии (choose 2 out of 3).
 
 -- t1 : (P and Q -> R) -> P -> Q -> R
-\func t1 {P Q R : \Type} (f : \Sigma P Q -> R) (p : P) (q : Q) : R => {?}
+\func t1 {P Q R : \Type} (f : \Sigma P Q -> R) (p : P) (q : Q) : R => f (p,q)
 
 -- t2 : (P -> R) -> (Q -> R) -> P or Q -> R
-\func t2 {P Q R : \Type} (f : P -> R) (g : Q -> R) (h : Either P Q) : R => {?}
+\func t2 {P Q R : \Type} (f : P -> R) (g : Q -> R) (h : Either P Q) : R \elim h
+  | inl i => f i
+  | inr i => g i
 
 -- t3 : ((P -> Q -> R) -> P) -> (P -> R) -> R
 \func t3 {P Q R : \Type} (f : (P -> Q -> R) -> P) (g : P -> R) : R => {?}
@@ -26,19 +60,31 @@
 -- 6. Сформулируйте и докажите следующие пропозициональные тавтологии (choose 2 out of 3).
 
 -- t4 : (P -> Q -> R) -> P and Q -> R
--- t5 : (P or Q -> P and Q) -> (P -> Q) and (Q -> P)
--- t6 : ((((P -> Q) -> P) -> P) -> Q) -> Q
+\func t4 {P Q R : \Type} (f : P -> Q -> R) (p : \Sigma P Q) : R => f p.1 p.2
+
+-- t5' : (P or Q -> P and Q) -> (P -> Q) and (Q -> P)
+\func t5 {P Q R : \Type} (f : Either P Q -> \Sigma P Q) : \Sigma (P -> Q) (Q -> P) =>
+  (\lam p => (f (inl p)).2, \lam q => (f (inr q)).1)
+
+-- t6' : ((((P -> Q) -> P) -> P) -> Q) -> Q
 
 -- 7. Докажите следующие утверждения.
 
 -- s1 : Если для любого x : Nat верно P(x), то существует x : Nat для которого P(x) верно.
-\func s1 (P : Nat -> \Type) (h : \Pi (x : Nat) -> P x) : \Sigma (x : Nat) (P x) => {?}
+\func s1 (P : Nat -> \Type) (h : \Pi (x : Nat) -> P x) : \Sigma (x : Nat) (P x) =>
+  (zero, h zero)
 
 -- s2 : Если не существует x : Nat такого, что верно P(x), то P(3) не верно.
-\func s2 (P : Nat -> \Type) (h : \Sigma (x : Nat) (P x) -> Empty) : P 3 -> Empty => {?}
+\func s2 (P : Nat -> \Type) (h : \Sigma (x : Nat) (P x) -> Empty) : P 3 -> Empty =>
+  \lam p => h (suc (suc (suc zero)), p)
 
 -- 8. Сформулируйте и докажите следующие утверждения.
 
 -- s3 : Если для всех x : Nat верно, что P(x) влечет Q(x), и существует x : Nat для которого верно P(x), то существует x : Nat для которого верно Q(x).
+\func s3 (P Q : Nat -> \Type) (h : \Pi (x : Nat) -> P x -> Q x) (g : \Sigma (x : Nat) (P x)) : \Sigma (x : Nat) (Q x) \elim g
+  | (x, p) => (x, h x p)
 
 -- s4 : Если для всех x : Nat либо не верно P(x), либо не верно Q(x), то P(3) влечет, что Q(3) не верно.
+\func s4 (P Q : Nat -> \Type) (h : \Pi (x : Nat) -> Either (P x -> Empty) (Q x -> Empty)) : P 3 -> (Q 3 -> Empty) => {
+
+}
