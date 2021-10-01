@@ -1,13 +1,19 @@
+\import Function.Meta
 \import Utils
+\import lect03
 \open Nat(+,*)
 
 -- 1. Чему равно fileTest (в нормальной форме)? Докажите это.
+\func fprove : fileTest = (\lam _ _ => 0, 8, 13, 55, 18, 21) => idp
 
 -- 2. Чему равно M5.t''' (в нормальной форме)? Докажите это.
+\func M5prove : M5.t''' = ((82, 42, 61, 82, 34, 42, 61, 29), 25, (42, 29)) => idp
 
 -- 3. Докажите ассоциативность ++.
 
-\func ++-assoc {A : \Type} (xs ys zs : List A) : (xs ++ ys) ++ zs = xs ++ (ys ++ zs) => {?}
+\func ++-assoc {A : \Type} (xs ys zs : List A) : (xs ++ ys) ++ zs = xs ++ (ys ++ zs) \elim xs
+  | nil => idp
+  | :: a xs => pmap (:: a) (++-assoc xs ys zs)
 
 -- 4. Докажите, что reverse (reverse xs) = xs, где reverse определен через ++.
 
@@ -16,12 +22,40 @@
   | :: x xs => reverse xs ++ x :: nil
 
 -- Это утверждение будет полезно для доказательства.
-\func reverse++ {A : \Type} (xs ys : List A) : reverse (xs ++ ys) = reverse ys ++ reverse xs => {?}
+\func reverse++ {A : \Type} (xs ys : List A) : reverse (xs ++ ys) = reverse ys ++ reverse xs \elim xs
+  | nil => sym $ concatWithEmpty (reverse ys)
+  | :: a xs => pmap (`++` a :: nil) (reverse++ xs ys) *> (++-assoc (reverse ys) (reverse xs) (a :: nil))
 
-\func reverse-isInvolutive {A : \Type} (xs : List A) : reverse (reverse xs) = xs => {?}
+\func concatWithEmpty {A : \Type} (xs : List A) : xs ++ nil = xs \elim xs
+  | nil => idp
+  | :: a xs => pmap (:: a) (concatWithEmpty xs)
+
+\func reverse-isInvolutive {A : \Type} (xs : List A) : reverse (reverse xs) = xs \elim xs
+  | nil => idp
+  | :: a xs => (reverse++ (reverse xs) (a :: nil)) *> (pmap (a ::) (reverse-isInvolutive xs)) *> idp
 
 -- 5. Докажите дистрибутивность умножения над сложением для натуральных чисел.
 
-\func rdistr (n m k : Nat) : (m + k) * n = m * n + k * n => {?}
+\func rdistr (n m k : Nat) : (m + k) * n = m * n + k * n \elim n
+  | 0 => idp
+  | suc n => pmap (`+` (m + k)) (rdistr n m k) *> inner (m * n) (k * n) m k
+  \where {
+    \func inner (a b c d : Nat) : a + b + (c + d) = a + c + (b + d) \elim a
+      | 0 => inner2 b c d
+      | suc a => pmap suc (inner a b c d)
+    \func inner2 (b c d : Nat) : b + (c + d) = c + (b + d) \elim b
+      | 0 => idp
+      | suc b => pmap suc (inner2 b c d)
+  }
 
-\func ldistr (n m k : Nat) : n * (m + k) = n * m + n * k => {?}
+\func ldistr (n m k : Nat) : n * (m + k) = n * m + n * k \elim m
+  | 0 => idp
+  | suc m => pmap (`+` n) (ldistr n m k) *> inner (n * m) (n * k) n
+  \where {
+    \func inner (a b c : Nat) : a + b + c = a + c + b \elim a
+      | 0 => inner2 b c
+      | suc a => pmap suc (inner a b c)
+    \func inner2 (a b : Nat) : a + b = b + a \elim a
+      | 0 => idp
+      | suc a => pmap suc (inner2 a b)
+  }
