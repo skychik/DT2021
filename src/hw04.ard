@@ -1,6 +1,7 @@
+\import Algebra.Ring.Localization
 \import Utils
-\import lect04 \hiding (Vec,vnil,vcons)
-\open Nat(+,*)
+\import lect04 \hiding (Vec, vnil, vcons)
+\open Nat (+, *)
 
 -- 1. Напишите функцию lookup, которая принимает List A и натуральное число и возвращает элемент по заданому индексу.
 --    В общем случае эту функцию определить невозможно, т.к. индекс может быть больше, чем число элементов в списке.
@@ -12,44 +13,84 @@
   | suc x, 0 => false
   | suc x, suc y => x < y
 
-\func lookup => {?}
+\func lookup {A : \Type} (n : Nat) (xs : List A) (p : T (n < length xs)) : A \elim n, xs
+  | 0, :: x xs => x
+  | suc n, :: x xs => lookup n xs p
 
 -- 2. Реализуйте аналоги функции replicate для vec и Vec (эта функция создает список заданной длины, состоящий из повторений данного элемента).
 
+\func replicate_vec {A : \Type} (n : Nat) (a : A) : vec A n \elim n
+  | 0 => ()
+  | suc n => (a, replicate_vec n a)
+
+\func replicate_Vec {A : \Type} (n : Nat) (a : A) : Vec A n \elim n
+  | 0 => vnil
+  | suc n => vcons a (replicate_Vec n a)
+
 -- 3. Реализуйте аналоги функции map для vec и Vec.
+
+\func map_vec {A B : \Type} {n : Nat} (v : vec A n) (f : A -> B) : vec B n \elim n, v
+  | 0, _ => ()
+  | suc n, (a, as) => (f a, map_vec as f)
+
+\func map_Vec {A B : \Type} {n : Nat} (v : Vec A n) (f : A -> B) : Vec B n \elim n, v
+  | 0, vnil => vnil
+  | suc n, vcons a v => vcons (f a) (map_Vec v f)
 
 -- 4. Реализуйте аналоги функции zipWith для vec и Vec.
 --    Функция должна принимать вектора одинаковой длины.
 
+\func zipWith_vec {A B C : \Type} {n : Nat} (v1 : vec A n) (v2 : vec B n) (f : A -> B -> C) : vec C n \elim n, v1, v2
+  | 0, _, _ => ()
+  | suc n, (a, v1), (b, v2) => (f a b, zipWith_vec v1 v2 f)
+
+\func zipWith_Vec {A B C : \Type} {n : Nat} (v1 : Vec A n) (v2 : Vec B n) (f : A -> B -> C) : Vec C n \elim n, v1, v2
+  | 0, vnil, vnil => vnil
+  | suc n, vcons a v1, vcons b v2 => vcons (f a b) (zipWith_Vec v1 v2 f)
+
+
 -- 5. Определите конгруэнтность для функций двух аргументов через transport.
 --    Можно использовать любые функции, определенные через transport.
 
-\func pmap2 {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} (q : b = b') : f a b = f a' b' => {?}
+\func pmap2 {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} (q : b = b') : f a b = f a' b' =>
+  transport (\lam x => f a b = f a' x) q (transport (\lam x => f a b = f x b) p idp)
 
 -- 6. Докажите, что transport выражается через pmap и repl и наоборот.
 
 -- repl говорит, что если у нас есть два равных типа, то у нас есть функция из одного во второй.
 -- Определите repl через transport.
 
-\func repl {A B : \Type} (p : A = B) (a : A) : B => {?}
+\func repl {A B : \Type} (p : A = B) (a : A) : B => transport (\lam x => x) p a
 
 -- Определите transport через repl и pmap.
 
-\func transport' {A : \Type} (B : A -> \Type) {a a' : A} (p : a = a') (b : B a) : B a' => {?}
+\func transport' {A : \Type} (B : A -> \Type) {a a' : A} (p : a = a') (b : B a) : B a' =>
+  repl (pmap (\lam x => B x) p) b
 
 -- 7. Определите тип CTree A n полных бинарных деревьев высоты ровно n, которые хранят элементы только во внутренних узлах, но не в листьях.
 --    Высота листа равна 0.
 
-\data CTree (A : \Type) (n : Nat)
+\data CTree (A : \Type) (n : Nat) \elim n
+  | 0 => cleaf
+  | suc n => cnode A (CTree A n) (CTree A n)
 
 -- 8. Определите тип Tree A n бинарных деревьев высоты не больше n, которые хранят элементы только во внутренних узлах, но не в листьях.
 --    Высота листа равна 0.
 
-\data Tree (A : \Type) (n : Nat)
+\data Tree (A : \Type) (n : Nat) \elim n
+  | suc n => {node A (Tree A n) (Tree A n) | leaf}
 
 -- определите функцию, возвращающую высоту дерева.
 
-\func height {A : \Type} (n : Nat) (t : Tree A n) : Fin (suc n) => {?}
+\func height {A : \Type} (n : Nat) (t : Tree A n) : Fin (suc n) \elim n, t
+  | suc n, node a t1 t2 => fsuc (maxFin (height n t1) (height n t2))
+  | suc n, leaf => fzero
+  \where \func maxFin {n : Nat} (n1 n2 : Fin (suc n)) : Fin (suc n) \elim n, n1, n2
+    | 0, fsuc n1, fsuc n2 => fzero
+    | n, fzero, fzero => fzero
+    | n, fzero, fsuc n2 => fsuc n2
+    | n, fsuc n1, fzero => fsuc n1
+    | suc n, fsuc n1, fsuc n2 => fsuc (maxFin n1 n2)
 
 -- Optional task
 -- 9. Функции Fin n -> A соответствуют спискам элементов A длины n.
@@ -78,12 +119,15 @@
 -- умножение матриц
 
 -- z ─ нейтральный элемент по сложению.
-\func matMul {A : \Type} (z : A) (add mul : A -> A -> A) (n m k : Nat) (M : Mat A n m) (N : Mat A m k) : Mat A n k => {?}
+
+\func matMul {A : \Type} (z : A) (add mul : A -> A -> A) (n m k : Nat) (M : Mat A n m) (N : Mat A m k) : Mat A n k =>
+  {?}
 
 -- 11. Укажите явно чему равен уровень в каждом из вызовов id' ниже.
 --     Напишите явно чему равны типы всех функций idTest*.
 
 \func id' {A : \Type} (a : A) => a
 
-\func idTest1 => id' (id' id)
-\func idTest2 => id' Maybe
+\func idTest1 : \Pi (A : \Type) -> A -> A => id' (\suc \lp) (id' (\suc \lp) id)
+
+\func idTest2 : \Type \lp -> \Type \lp => id' (\suc \lp) Maybe
