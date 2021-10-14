@@ -1,9 +1,22 @@
 \import Utils
+\import lect01 (id)
 \import lect04 (+-comm,+')
+\import lect05 (Nat-elim, Nat-rec)
 
 -- 1. Определите факториал через Nat-rec.
+\func fac' (n : Nat): Nat => Nat-rec Nat 1 (\lam x y => (x +' 1) * y) n
+
+\func fac0Test : fac' 0 = 1 => idp
+\func fac1Test : fac' 1 = 1 => idp
+\func fac2Test : fac' 2 = 2 => idp
+\func fac3Test : fac' 3 = 6 => idp
+\func fac4Test : fac' 4 = 24 => idp
+
 
 -- 2. Докажите ассоциативность сложения для натуральных чисел через Nat-elim.
+
+\func assocNat+ (n m k : Nat) : (n +' m) +' k = n +' (m +' k) =>
+  Nat-elim (\lam x => (n +' m) +' x = n +' (m +' x)) idp (\lam n1 p => pmap suc p) k
 
 -- 3. Определите рекурсор и элиминатор для D.
 
@@ -11,6 +24,22 @@
   | con1 Nat
   | con2 D D
   | con3 (Nat -> D)
+
+\func D-elim (P : D -> \Type)
+             (c1 : \Pi (x : Nat) -> P (con1 x))
+             (c2 : \Pi (d1 d2 : D) -> P (con2 d1 d2))
+             (c3 : \Pi (p : Nat -> D) -> P (con3 p))
+             (x : D) : P x \elim x
+  | con1 n => c1 n
+  | con2 d1 d2 => c2 d1 d2
+  | con3 p => c3 p
+
+\func D-rec (P : \Type)
+            (c1 : Nat -> P)
+            (c2 : D -> D -> P)
+            (c3 : (Nat -> D) -> P)
+            (x : D) : P
+  => D-elim (\lam _ => P) c1 c2 c3 x
 
 {- To check that the definition of D-elim and D-rec is correct, you can try to implement foo using D-rec.
 \func foo (d : D) : Nat
@@ -21,9 +50,25 @@
 
 -- 4. Определите рекурсор и элиминатор для List.
 
+\func List-elim {A : \Type}
+                (P : List A -> \Type)
+                (n : P nil)
+                (c : \Pi (a : A) -> \Pi (tail : List A) -> P (a :: tail))
+                (x : List A) : P x \elim x
+  | nil => n
+  | :: a x => c a x
+
+\func List-rec {A : \Type}
+               (P : \Type)
+               (n : P)
+               (c : \Pi (a : A) -> List A -> P)
+               (x : List A) : P
+  => List-elim (\lam _ => P) n c x
+
 -- 5. Докажите pmap при помощи паттерн матчинга с idp.
 
-\func pmap {A B : \Type} (f : A -> B) {a a' : A} (p : a = a') : f a = f a' => {?}
+\func pmap {A B : \Type} (f : A -> B) {a a' : A} (p : a = a') : f a = f a' \elim p
+  | idp => idp
 
 -- Optional:
 -- 6. У оператора J есть другая форма, которую мы будем называть Jalt. Докажите, что J и Jalt эквивалентны, то есть выразите одно через другое и наоборот.
@@ -64,19 +109,22 @@
 
 -- 9. Докажите, что left = right, не используя transport, coe и паттерн матчинг с idp.
 
-\func left=right : left = right => {?}
+\func left=right : left = right => path (\lam i => i)
 
 -- 10. Докажите, что если a = a' и b = b', то (a,b) = (a',b'), не используя transport, coe и паттерн матчинг с idp.
 
-\func pairEq {A B : \Type} {a a' : A} {b b' : B} (p : a = a') (q : b = b') : (a,b) = (a',b') => {?}
+\func pairEq {A B : \Type} {a a' : A} {b b' : B} (p : a = a') (q : b = b') : (a,b) = (a',b')
+  => path (\lam i => (p @ i, q @ i))
 
 -- 11. Докажите, что если p = p', то p.1 = p'.1, не используя transport, coe и паттерн матчинг с idp.
 
-\func projEq {A : \Type} (B : A -> \Type) {p p' : \Sigma (x : A) (B x)} (t : p = p') : p.1 = p'.1 => {?}
+\func projEq {A : \Type} (B : A -> \Type) {p p' : \Sigma (x : A) (B x)} (t : p = p') : p.1 = p'.1
+  => pmap (\lam p => p.1) t
 
 -- 12. Докажите pmap2, не используя transport, coe и паттерн матчинг с idp.
 
-\func pmap2' {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} (q : b = b') : f a b = f a' b' => {?}
+\func pmap2' {A B C : \Type} (f : A -> B -> C) {a a' : A} (p : a = a') {b b' : B} (q : b = b') : f a b = f a' b'
+  => path (\lam i => f (p @ i) (q @ i))
 
 -- 13. Мы видели как определить transport через coe. Определите частный случай coe через transport.
 
@@ -88,7 +136,8 @@
 
 -- 15. Докажите, что vnil является нейтральным элементом для v++.
 
-\func vnil-rightId {A : \Type} {n : Nat} (xs : Vec A n) : transport (Vec A) (+-comm 0 n) (xs v++ vnil) = xs => {?}
+\func vnil-rightId {A : \Type} {n : Nat} (xs : Vec A n) : transport (Vec A) (+-comm 0 n) (xs v++ vnil) = xs
+  => {?}
   \where {
     \func \infixl 4 v++ {A : \Type} {n m : Nat} (xs : Vec A n) (ys : Vec A m) : Vec A (m +' n) \elim n, xs
       | 0, vnil => ys
