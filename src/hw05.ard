@@ -1,3 +1,4 @@
+\import Function.Meta
 \import Utils
 \import lect01 (id)
 \import lect04 (+-comm,+')
@@ -128,11 +129,11 @@
 
 -- 13. Мы видели как определить transport через coe. Определите частный случай coe через transport.
 
-\func coe0 (A : I -> \Type) (a : A left) : A right => {?}
+\func coe0 (A : I -> \Type) (a : A left) : A right => transport A left=right a
 
 -- 14. Определите функцию B right -> B left.
 
-\func Itr' {B : I -> \Type} (b : B right) : B left => {?}
+\func Itr' {B : I -> \Type} (b : B right) : B left => transport B (sym $ path (\lam i => i)) b
 
 -- 15. Докажите, что vnil является нейтральным элементом для v++.
 
